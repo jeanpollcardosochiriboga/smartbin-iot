@@ -1,0 +1,11 @@
+# Credenciales de Firebase - NUNCA subir a repositorio
+serviceAccountKey.json
+
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+
+# Logs
+*.log

@@ -1,0 +1,118 @@
+╔══════════════════════════════════════════════════════════════════╗
+║        SmartBin IoT - Arduino Gateway - INSTRUCCIONES            ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Este módulo conecta tu Arduino físico con Firebase Realtime Database.
+Los datos del sensor se sincronizan automáticamente con la nube.
+
+══════════════════════════════════════════════════════════════════
+ REQUISITOS PREVIOS
+══════════════════════════════════════════════════════════════════
+
+1. Node.js instalado (v18 o superior recomendado)
+2. Arduino conectado vía USB
+3. Credenciales de Firebase (serviceAccountKey.json)
+
+══════════════════════════════════════════════════════════════════
+ PASO 1: Obtener Credenciales de Firebase
+══════════════════════════════════════════════════════════════════
+
+1. Ve a: https://console.firebase.google.com
+2. Selecciona tu proyecto "smartbin-iot-epn"
+3. Click en ⚙️ Configuración del proyecto > Cuentas de servicio
+4. Click en "Generar nueva clave privada"
+5. Renombra el archivo descargado a: serviceAccountKey.json
+6. Copia ese archivo a esta carpeta (arduino-gateway/)
+
+⚠️ IMPORTANTE: Nunca subas serviceAccountKey.json a GitHub
+
+══════════════════════════════════════════════════════════════════
+ PASO 2: Instalar Dependencias
+══════════════════════════════════════════════════════════════════
+
+Abre una terminal en esta carpeta y ejecuta:
+
+    npm install
+
+══════════════════════════════════════════════════════════════════
+ PASO 3: Configurar Puerto Serial
+══════════════════════════════════════════════════════════════════
+
+1. Conecta tu Arduino por USB
+2. Abre el Administrador de Dispositivos de Windows
+3. Busca "Puertos (COM y LPT)" > Arduino (COMx)
+4. Edita bridge.js y cambia PORT_PATH al puerto correcto:
+   
+   const PORT_PATH = 'COM3';  // ← Cambia al tuyo (COM4, COM5, etc.)
+
+Alternativa: Usa variable de entorno:
+    
+    set SERIAL_PORT=COM4
+    npm start
+
+══════════════════════════════════════════════════════════════════
+ PASO 4: Ejecutar el Gateway
+══════════════════════════════════════════════════════════════════
+
+    npm start
+
+Deberías ver:
+
+    ═══════════════════════════════════════════════════
+       SmartBin IoT - Arduino Gateway Bridge
+    ═══════════════════════════════════════════════════
+    ✅ Firebase inicializado correctamente
+    ✅ Puerto serial abierto exitosamente
+    📟 Esperando datos del Arduino...
+
+══════════════════════════════════════════════════════════════════
+ FORMATO DE DATOS ESPERADO DEL ARDUINO
+══════════════════════════════════════════════════════════════════
+
+El Arduino debe enviar líneas JSON por Serial:
+
+    {"fill_level": 45, "air_quality": 120}
+
+Ejemplo de código Arduino:
+
+    void loop() {
+      int nivel = analogRead(SENSOR_NIVEL);
+      int gases = analogRead(SENSOR_GAS);
+      
+      Serial.print("{\"fill_level\":");
+      Serial.print(nivel);
+      Serial.print(",\"air_quality\":");
+      Serial.print(gases);
+      Serial.println("}");
+      
+      delay(2000);
+    }
+
+══════════════════════════════════════════════════════════════════
+ SOLUCIÓN DE PROBLEMAS
+══════════════════════════════════════════════════════════════════
+
+ERROR: "Cannot find module 'serialport'"
+  → Ejecuta: npm install
+
+ERROR: "Error al abrir puerto serial"
+  → Cierra el Monitor Serial de Arduino IDE
+  → Verifica el número de puerto COM correcto
+
+ERROR: "serviceAccountKey.json not found"
+  → Descarga las credenciales de Firebase Console
+
+ERROR: "Permission denied" (en Linux/Mac)
+  → Ejecuta: sudo chmod 666 /dev/ttyUSB0
+
+══════════════════════════════════════════════════════════════════
+ NOTAS ADICIONALES
+══════════════════════════════════════════════════════════════════
+
+• Este gateway es independiente de la app React
+• Puedes correr ambos simultáneamente (app web + gateway)
+• La app web detectará los datos reales de Firebase automáticamente
+• Para volver a simulación, simplemente detén este gateway
+• Presiona Ctrl+C para detener el gateway
+
+══════════════════════════════════════════════════════════════════
