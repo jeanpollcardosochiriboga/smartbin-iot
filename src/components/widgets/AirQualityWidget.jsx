@@ -10,6 +10,14 @@ import { cn, getAirQualityColor, formatChartData } from '../../lib/utils';
 export function AirQualityWidget({ ppm, ppmHistory, status, fanOn = false }) {
   const color = getAirQualityColor(ppm);
   const chartData = formatChartData(ppmHistory, 'ppm');
+  
+  // Umbral de gases para activar indicador visual
+  const GAS_ALERT_THRESHOLD = 310;
+  
+  // El ventilador debe mostrarse activo si: fanOn es true O hay gases peligrosos
+  const isVentiladorActivo = fanOn || ppm > GAS_ALERT_THRESHOLD;
+  // Si hay gases pero el ventilador físico no está encendido, mostrar estado de alerta
+  const isAlertaGases = ppm > GAS_ALERT_THRESHOLD && !fanOn;
 
   const statusLabels = {
     good: 'Excelente',
@@ -34,45 +42,61 @@ export function AirQualityWidget({ ppm, ppmHistory, status, fanOn = false }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="p-2 bg-blue-50 rounded-lg">
             <Wind className="w-5 h-5 text-blue-600" />
           </div>
           <h3 className="text-lg font-semibold text-slate-800">Calidad del Aire</h3>
-          
-          {/* Indicador visual del ventilador */}
-          <div 
-            className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300',
-              fanOn 
-                ? 'bg-blue-100 text-blue-700 shadow-sm shadow-blue-200' 
-                : 'bg-gray-100 text-gray-500'
-            )}
-            title={fanOn ? 'Ventilador activo' : 'Ventilador apagado'}
-          >
-            <Fan 
-              className={cn(
-                'w-4 h-4 transition-all duration-300',
-                fanOn 
-                  ? 'text-blue-600 animate-spin-slow' 
-                  : 'text-gray-400'
-              )} 
-            />
-            <span>{fanOn ? 'ON' : 'OFF'}</span>
-          </div>
         </div>
-        <span
+        
+        {/* Indicador visual del ventilador - Más grande y visible */}
+        <motion.div 
+          animate={isVentiladorActivo ? { scale: [1, 1.05, 1] } : {}}
+          transition={{ duration: 1, repeat: Infinity }}
           className={cn(
-            'px-3 py-1 rounded-full text-sm font-medium',
-            status === 'danger' && 'bg-red-100 text-red-700',
-            status === 'warning' && 'bg-amber-100 text-amber-700',
-            status === 'medium' && 'bg-blue-100 text-blue-700',
-            status === 'good' && 'bg-green-100 text-green-700'
+            'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-300',
+            isAlertaGases 
+              ? 'bg-orange-100 text-orange-700 shadow-md shadow-orange-200 border border-orange-300'
+              : fanOn 
+                ? 'bg-blue-100 text-blue-700 shadow-md shadow-blue-200 border border-blue-300' 
+                : 'bg-gray-100 text-gray-500 border border-gray-200'
           )}
+          title={
+            isAlertaGases 
+              ? '¡Gases detectados! Ventilador debería activarse' 
+              : fanOn 
+                ? 'Ventilador activo' 
+                : 'Ventilador apagado'
+          }
         >
-          {statusLabels[status]}
-        </span>
+          <Fan 
+            className={cn(
+              'w-5 h-5 transition-all duration-300',
+              isVentiladorActivo 
+                ? isAlertaGases 
+                  ? 'text-orange-600 animate-spin-slow' 
+                  : 'text-blue-600 animate-spin-slow'
+                : 'text-gray-400'
+            )} 
+          />
+          <span>
+            {isAlertaGases ? '⚠️' : fanOn ? 'ON' : 'OFF'}
+          </span>
+        </motion.div>
       </div>
+      
+      {/* Status badge */}
+      <span
+        className={cn(
+          'px-3 py-1 rounded-full text-sm font-medium inline-block mb-3',
+          status === 'danger' && 'bg-red-100 text-red-700',
+          status === 'warning' && 'bg-amber-100 text-amber-700',
+          status === 'medium' && 'bg-blue-100 text-blue-700',
+          status === 'good' && 'bg-green-100 text-green-700'
+        )}
+      >
+        {statusLabels[status]}
+      </span>
 
       {/* Current value */}
       <div className="flex items-baseline gap-2 mb-4">

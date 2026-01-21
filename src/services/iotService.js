@@ -45,7 +45,8 @@ const PATHS = {
   AIR_QUALITY: 'sensors/air_quality',
   TEMPERATURE: 'sensors/temperature',
   HUMIDITY: 'sensors/humidity',
-  LID_OPEN: 'actuators/lid_open',
+  LID_STATUS: 'sensors/lid_status',      // Sensor real del Arduino
+  LID_OPEN: 'actuators/lid_open',         // Comando manual (legacy)
   FAN_STATUS: 'actuators/fan_status',
   EVENTS: 'events',
   CONFIG: 'config/thresholds',
@@ -188,16 +189,30 @@ function setupFirebaseListeners() {
     });
     unsubscribeFunctions.push(unsubAir);
 
-    // Listener para estado de tapa
-    const lidRef = ref(database, PATHS.LID_OPEN);
-    const unsubLid = onValue(lidRef, (snapshot) => {
+    // Listener para estado de tapa desde SENSOR Arduino (lid_status)
+    const lidSensorRef = ref(database, PATHS.LID_STATUS);
+    const unsubLidSensor = onValue(lidSensorRef, (snapshot) => {
       const value = snapshot.val();
       if (value !== null) {
+        // Puede venir como booleano directo o como objeto {status: bool}
+        firebaseState.lidOpen = typeof value === 'object' ? (value.status ?? value.value ?? false) : Boolean(value);
+        console.log('📦 Tapa (sensor):', firebaseState.lidOpen ? 'ABIERTA' : 'CERRADA');
+        notifyFirebaseListeners();
+      }
+    });
+    unsubscribeFunctions.push(unsubLidSensor);
+
+    // Listener legacy para actuator/lid_open (comandos manuales)
+    const lidActuatorRef = ref(database, PATHS.LID_OPEN);
+    const unsubLidActuator = onValue(lidActuatorRef, (snapshot) => {
+      const value = snapshot.val();
+      // Solo actualizar si el sensor no ha reportado (fallback)
+      if (value !== null && firebaseState.lidOpen === undefined) {
         firebaseState.lidOpen = typeof value === 'object' ? value.status || false : value;
         notifyFirebaseListeners();
       }
     });
-    unsubscribeFunctions.push(unsubLid);
+    unsubscribeFunctions.push(unsubLidActuator);
 
     // Listener para estado del ventilador
     const fanRef = ref(database, PATHS.FAN_STATUS);
