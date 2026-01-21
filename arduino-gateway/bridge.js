@@ -14,7 +14,7 @@ require('dotenv').config();
 // CONFIGURACIÓN - Modifica estos valores según tu setup
 // ============================================================
 
-const PORT_PATH = process.env.SERIAL_PORT || 'COM3';  // Puerto serial del Arduino
+const PORT_PATH = process.env.SERIAL_PORT || 'COM9';  // Puerto serial del Arduino
 const BAUD_RATE = 9600;                                // Velocidad de comunicación
 const DATABASE_URL = 'https://smartbin-iot-epn-default-rtdb.firebaseio.com';
 
@@ -121,6 +121,15 @@ async function processSerialData(rawData) {
     
     if (typeof data.air_quality !== 'undefined') {
       sensorData.air_quality = Number(data.air_quality);
+    }
+
+    // Procesar estados del actuador (fan y tapa)
+    if (typeof data.fan_status !== 'undefined') {
+      sensorData.fan_status = Boolean(data.fan_status);
+    }
+
+    if (typeof data.lid_status !== 'undefined') {
+      sensorData.lid_status = Boolean(data.lid_status);
     }
 
     // Agregar timestamp
