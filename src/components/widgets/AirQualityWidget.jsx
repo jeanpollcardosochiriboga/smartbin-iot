@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Wind } from 'lucide-react';
+import { Wind, Fan } from 'lucide-react';
 import { cn, getAirQualityColor, formatChartData } from '../../lib/utils';
 
 /**
  * Widget de Calidad del Aire
  * Muestra el gráfico de área con historial de PPM
  */
-export function AirQualityWidget({ ppm, ppmHistory, status }) {
+export function AirQualityWidget({ ppm, ppmHistory, status, fanOn = false }) {
   const color = getAirQualityColor(ppm);
   const chartData = formatChartData(ppmHistory, 'ppm');
 
@@ -39,6 +39,27 @@ export function AirQualityWidget({ ppm, ppmHistory, status }) {
             <Wind className="w-5 h-5 text-blue-600" />
           </div>
           <h3 className="text-lg font-semibold text-slate-800">Calidad del Aire</h3>
+          
+          {/* Indicador visual del ventilador */}
+          <div 
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300',
+              fanOn 
+                ? 'bg-blue-100 text-blue-700 shadow-sm shadow-blue-200' 
+                : 'bg-gray-100 text-gray-500'
+            )}
+            title={fanOn ? 'Ventilador activo' : 'Ventilador apagado'}
+          >
+            <Fan 
+              className={cn(
+                'w-4 h-4 transition-all duration-300',
+                fanOn 
+                  ? 'text-blue-600 animate-spin-slow' 
+                  : 'text-gray-400'
+              )} 
+            />
+            <span>{fanOn ? 'ON' : 'OFF'}</span>
+          </div>
         </div>
         <span
           className={cn(

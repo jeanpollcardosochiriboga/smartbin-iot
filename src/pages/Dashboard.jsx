@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { Sidebar, Header } from '../components/layout';
 import {
   LevelWidget,
@@ -13,6 +14,12 @@ import { useSmartBin } from '../hooks/useSmartBin';
  * Dashboard Principal
  * Página principal que muestra todos los widgets de monitoreo
  */
+import { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
+
+// Umbral para activar alerta crítica
+const GAS_ALERT_THRESHOLD = 310;
+
 export function Dashboard() {
   const {
     sensorData,
@@ -27,11 +34,108 @@ export function Dashboard() {
     resetSimulation
   } = useSmartBin();
 
+  // Estado para el banner de alerta crítica
+  const [showCriticalAlert, setShowCriticalAlert] = useState(false);
+  const [alertDismissed, setAlertDismissed] = useState(false);
+  
+  // Ref para detectar transición de estado (activo → seguro)
+  const prevAlertState = useRef(false);
+
+  // Detectar condición de alerta crítica
+  const isCriticalCondition = sensorData.fanOn || sensorData.ppm > GAS_ALERT_THRESHOLD;
+
+  useEffect(() => {
+    // Si hay condición crítica, mostrar banner
+    if (isCriticalCondition) {
+      setShowCriticalAlert(true);
+      setAlertDismissed(false);
+    } else {
+      // Si estaba en alerta y ahora está seguro, mostrar toast verde
+      if (prevAlertState.current && !isCriticalCondition) {
+        toast.success('✅ Calidad del aire restablecida. Ventilador apagado.', {
+          icon: '🌿',
+          autoClose: 5000,
+          style: { background: '#10b981', color: 'white' }
+        });
+      }
+      setShowCriticalAlert(false);
+    }
+    
+    // Actualizar estado previo
+    prevAlertState.current = isCriticalCondition;
+  }, [isCriticalCondition]);
+
+  // Handler para cerrar el banner manualmente
+  const dismissAlert = () => {
+    setAlertDismissed(true);
+    setShowCriticalAlert(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Banner de Alerta Crítica */}
+      <AnimatePresence>
+        {showCriticalAlert && !alertDismissed && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 shadow-lg"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {/* Ícono animado de advertencia */}
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.2, 1],
+                      rotate: [0, -10, 10, -10, 0]
+                    }}
+                    transition={{ 
+                      duration: 0.5,
+                      repeat: Infinity,
+                      repeatDelay: 1
+                    }}
+                    className="p-2 bg-white/20 rounded-full"
+                  >
+                    <AlertTriangle className="w-6 h-6 text-white" />
+                  </motion.div>
+                  
+                  <div>
+                    <p className="text-white font-bold text-lg">
+                      ⚠️ ¡ALERTA: Gases Detectados!
+                    </p>
+                    <p className="text-white/90 text-sm">
+                      Ventilador activado automáticamente. PPM actual: {sensorData.ppm}
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={dismissAlert}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                  aria-label="Cerrar alerta"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Barra de progreso animada */}
+            <motion.div
+              className="h-1 bg-white/30"
+              initial={{ scaleX: 0, originX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 10, ease: 'linear' }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Sidebar />
       
-      <main className="ml-64">
+      <main className={`ml-64 ${showCriticalAlert && !alertDismissed ? 'pt-20' : ''}`}>
         <Header
           title="Dashboard"
           subtitle="Monitoreo en tiempo real del SmartBin"
@@ -78,6 +182,7 @@ export function Dashboard() {
                 ppm={sensorData.ppm}
                 ppmHistory={sensorData.ppmHistory}
                 status={status.airQualityStatus}
+                fanOn={sensorData.fanOn}
               />
             </motion.div>
 
