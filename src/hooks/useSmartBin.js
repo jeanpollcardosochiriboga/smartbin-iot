@@ -101,6 +101,14 @@ export function useSmartBin() {
 
     // Suscribirse a cambios
     const unsubscribe = subscribeToSensorData((data) => {
+      // Debug: Log de datos recibidos
+      console.log('🔄 useSmartBin recibió:', {
+        level: data.level,
+        lidOpen: data.lidOpen,
+        fanOn: data.fanOn,
+        ppm: data.ppm
+      });
+      
       setSensorData(data);
       setLastUpdate(new Date());
       checkAlerts(data);
