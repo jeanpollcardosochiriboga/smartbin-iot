@@ -45,9 +45,10 @@ const PATHS = {
   AIR_QUALITY: 'sensors/air_quality',
   TEMPERATURE: 'sensors/temperature',
   HUMIDITY: 'sensors/humidity',
-  LID_STATUS: 'sensors/lid_status',      // Sensor real del Arduino
+  LID_STATUS: 'sensors/lid_status',       // Estado de tapa desde Arduino
+  FAN_STATUS: 'sensors/fan_status',       // Estado del ventilador desde Arduino
   LID_OPEN: 'actuators/lid_open',         // Comando manual (legacy)
-  FAN_STATUS: 'actuators/fan_status',
+  FAN_ACTUATOR: 'actuators/fan_status',   // Comando manual (legacy)
   EVENTS: 'events',
   CONFIG: 'config/thresholds',
   ALERTS: 'alerts'
@@ -161,10 +162,23 @@ function setupFirebaseListeners() {
     const levelRef = ref(database, PATHS.FILL_LEVEL);
     const unsubLevel = onValue(levelRef, (snapshot) => {
       const value = snapshot.val();
-      if (value !== null) {
-        firebaseState.level = typeof value === 'object' ? value.value || 0 : value;
+      console.log('📊 Raw fill_level from Firebase:', value, typeof value);
+      
+      if (value !== null && value !== undefined) {
+        let parsedLevel = 0;
+        
+        if (typeof value === 'number') {
+          parsedLevel = value;
+        } else if (typeof value === 'string') {
+          parsedLevel = parseFloat(value) || 0;
+        } else if (typeof value === 'object') {
+          parsedLevel = value.value ?? value.level ?? value.fill_level ?? 0;
+        }
+        
+        firebaseState.level = Math.round(parsedLevel * 10) / 10;
         firebaseState.levelHistory.push(firebaseState.level);
         firebaseState.levelHistory.shift();
+        console.log('📈 Nivel actualizado:', firebaseState.level + '%');
         notifyFirebaseListeners();
       }
     }, (error) => {
@@ -193,10 +207,24 @@ function setupFirebaseListeners() {
     const lidSensorRef = ref(database, PATHS.LID_STATUS);
     const unsubLidSensor = onValue(lidSensorRef, (snapshot) => {
       const value = snapshot.val();
-      if (value !== null) {
-        // Puede venir como booleano directo o como objeto {status: bool}
-        firebaseState.lidOpen = typeof value === 'object' ? (value.status ?? value.value ?? false) : Boolean(value);
-        console.log('📦 Tapa (sensor):', firebaseState.lidOpen ? 'ABIERTA' : 'CERRADA');
+      console.log('🚪 Raw lid_status from Firebase:', value, typeof value);
+      
+      if (value !== null && value !== undefined) {
+        // Manejar múltiples formatos posibles de Firebase
+        let parsedValue = false;
+        
+        if (typeof value === 'boolean') {
+          parsedValue = value;
+        } else if (typeof value === 'number') {
+          parsedValue = value === 1 || value > 0;
+        } else if (typeof value === 'string') {
+          parsedValue = value === 'true' || value === '1' || value.toLowerCase() === 'open';
+        } else if (typeof value === 'object') {
+          parsedValue = value.status ?? value.value ?? value.open ?? false;
+        }
+        
+        firebaseState.lidOpen = parsedValue;
+        console.log('📦 Tapa actualizada:', firebaseState.lidOpen ? 'ABIERTA' : 'CERRADA');
         notifyFirebaseListeners();
       }
     });
@@ -214,12 +242,27 @@ function setupFirebaseListeners() {
     });
     unsubscribeFunctions.push(unsubLidActuator);
 
-    // Listener para estado del ventilador
+    // Listener para estado del ventilador desde Arduino
     const fanRef = ref(database, PATHS.FAN_STATUS);
     const unsubFan = onValue(fanRef, (snapshot) => {
       const value = snapshot.val();
-      if (value !== null) {
-        firebaseState.fanOn = typeof value === 'object' ? value.status || false : value;
+      console.log('🌀 Raw fan_status from Firebase:', value, typeof value);
+      
+      if (value !== null && value !== undefined) {
+        let parsedValue = false;
+        
+        if (typeof value === 'boolean') {
+          parsedValue = value;
+        } else if (typeof value === 'number') {
+          parsedValue = value === 1 || value > 0;
+        } else if (typeof value === 'string') {
+          parsedValue = value === 'true' || value === '1';
+        } else if (typeof value === 'object') {
+          parsedValue = value.status ?? value.value ?? false;
+        }
+        
+        firebaseState.fanOn = parsedValue;
+        console.log('💨 Ventilador actualizado:', firebaseState.fanOn ? 'ENCENDIDO' : 'APAGADO');
         notifyFirebaseListeners();
       }
     });

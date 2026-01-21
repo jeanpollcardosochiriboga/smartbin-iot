@@ -122,6 +122,16 @@ async function processSerialData(rawData) {
     if (typeof data.air_quality !== 'undefined') {
       sensorData.air_quality = Number(data.air_quality);
     }
+    
+    // ✅ Agregar estado de la tapa (lid_status)
+    if (typeof data.lid_status !== 'undefined') {
+      sensorData.lid_status = Boolean(data.lid_status);
+    }
+    
+    // ✅ Agregar estado del ventilador (fan_status)
+    if (typeof data.fan_status !== 'undefined') {
+      sensorData.fan_status = Boolean(data.fan_status);
+    }
 
     // Agregar timestamp
     sensorData.last_update = admin.database.ServerValue.TIMESTAMP;

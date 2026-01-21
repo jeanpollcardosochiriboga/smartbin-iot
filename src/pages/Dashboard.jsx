@@ -208,6 +208,15 @@ export function Dashboard() {
             transition={{ duration: 0.3, delay: 0.4 }}
             className="mt-6"
           >
+            {/* Mini Debug: Valores en tiempo real */}
+            <div className="mb-4 p-3 bg-slate-100 rounded-xl border border-slate-200 text-xs font-mono">
+              <span className="text-slate-500">🔍 Debug:</span>
+              <span className="ml-2 text-blue-600">level={sensorData.level}%</span>
+              <span className="ml-3 text-green-600">lidOpen={String(sensorData.lidOpen)}</span>
+              <span className="ml-3 text-purple-600">fanOn={String(sensorData.fanOn)}</span>
+              <span className="ml-3 text-orange-600">ppm={sensorData.ppm}</span>
+            </div>
+            
             <DebugPanel
               onFill={simulateFill}
               onGas={simulateGas}
